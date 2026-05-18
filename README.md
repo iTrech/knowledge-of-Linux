@@ -1,93 +1,45 @@
 # knowledge-of-Linux
 ---
-Настройка SambaAD
+Настройка DHCP-сервера
 ---
-Подготовка имени и сетевых настроек
-Имя хоста (hostname): server (до 15 символов)
-важный шаг — файл /etc/hosts Убедитесь, что полное имя хоста (FQDN) и короткое имя резолвятся в ваш внешний статический IP, а не в 127.0.0.1
-
 Установка пакета
 
-	apt-get install task-samba-dc
+	apt-get install isc-dhcp-server
 
-Перед конфигурированием Samba DC необходимо остановить сервисы и удалить файлы которые могут конфликтовать с юнитом Samba DC
+Добавляем интефейсы в конфигурационный файл
 
-	systemctl disable --now bind krb5kdc nmb smb slapd
-	rm -f /etc/samba/smb.conf
-	rm -rf /var/lib/samba
-	rm -rf /var/cache/samba
-	mkdir -p /var/lib/samba/sysvol
+	nano /etc/default/isc-dhcp-server
+		INTERFACESv4="ens18 ens19"
 
-Команда для инифиализации домена
+Создаём pool dhcp
 
-	samba-tool domain provision
-	
-после ввода команды инициализации домена выводится "диалог" для ввода данных о домене
-после завершения диалога необходимо запустить сервис домена и ввести в автозагрузку
+	nano /etc/dhcp/dhcpd.conf
 
-	systemctl enable --now samba
-	samba-tool domain info 127.0.0.1
+		subnet 172.16.100.0 netmask 255.255.255.0 {
+			range 172.16.100.50 172.16.100.75;
+			option routers 172.16.100.1;
+			option	domain-name-servers 172.16.20.10;
+			
+			#Для постоянного адреса
+			
+			host l-cli-b {
+				hardware ethernet "mac-address";
+				fixed-address 172.16.200.61
+				option host-name "l-cli-b"
+			}
+		}
+		# Если есть пересылка в другую сеть, пишем сеть выходящую из роутера на котором dhcp-server
+		subnet 172.16.50.0 netmask 255.255.255.252 {
+		}
+
+Для перенаправления dhcp в другую сеть
+
+Устанавливаем пакет на соседний роутер
+
+	apt-get install isc-dhcp-relay
+
+Добавляем интефейсы в конфигурационный файл
+
+	nano /etc/default/isc-dhcp-relay
+		INTERFACESv4="ens18 ens19"
 ---
-Управление зонами DNS
---
-Создание прямой зоны
-
-	samba-tool dns zonecreate <DNS-сервер> <имя_зоны> -U <пользователь>
-
-Добавление А записей в прямую зону
-
-	samba-tool dns add <DNS-сервер> <зона> <имя_хоста> A <IP-адрес> -U <пользователь>
-
-Создание обратной зоны
-
-	samba-tool dns zonecreate <DNS-сервер> <обратная_зона> -U <пользователь>
-
-Добавление PTR записей в прямую зону
-	
-	samba-tool dns add <DNS-сервер> <обратная_зона> <последний_октет> PTR <FQDN> -U <пользователь>	
----
-Создание пользователей и групп
----
-Создать пользователя с паролем
-
-	samba-tool user create <имя пользователя> '<пароль>'
-	samba-tool user setexpiry <имя пользователя> - активация пользователя
-
-Просмотреть доступных пользователей:
-
-	samba-tool user list
-
-Удалить пользователя:
-
-	samba-tool user delete <имя пользователя>
-
-Включить пользователя:
-
-	samba-tool user enable <имя пользователя>
-
-Изменить пароль пользователя:
-
-	samba-tool user setpassword <имя пользователя>
-
-Создание группы
-
-Добавить группу:
-
-	samba-tool group add groupname
-
-Удалить группу:
-
-	samba-tool group delete groupname
-
-Добавить пользователя в группу:
-
-	samba-tool group addmembers "Domain Users" user
-	samba-tool group addmembers "Domain Users" user,user1,user2
-
-Удалить пользователя из группы:
-
-	samba-tool group listmembers "Domain Users" | grep username
-
-Группы пользователя:
-
-	samba-tool user show username
