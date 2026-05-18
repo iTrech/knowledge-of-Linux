@@ -44,4 +44,50 @@
 
 Добавление PTR записей в прямую зону
 	
-	samba-tool dns add <DNS-сервер> <обратная_зона> <последний_октет> PTR <FQDN> -U <пользователь>
+	samba-tool dns add <DNS-сервер> <обратная_зона> <последний_октет> PTR <FQDN> -U <пользователь>	
+---
+Создание пользователей и групп
+---
+Создать пользователя с паролем
+
+	samba-tool user create <имя пользователя> '<пароль>'
+	samba-tool user setexpiry <имя пользователя> - активация пользователя
+
+Просмотреть доступных пользователей:
+
+	samba-tool user list
+
+Удалить пользователя:
+
+	samba-tool user delete <имя пользователя>
+
+Включить пользователя:
+
+	samba-tool user enable <имя пользователя>
+
+Изменить пароль пользователя:
+
+	samba-tool user setpassword <имя пользователя>
+
+Создание группы
+
+Добавить группу:
+
+	samba-tool group add groupname
+
+Удалить группу:
+
+	samba-tool group delete groupname
+
+Добавить пользователя в группу:
+
+	samba-tool group addmembers "Domain Users" user
+	samba-tool group addmembers "Domain Users" user,user1,user2
+
+Удалить пользователя из группы:
+
+	samba-tool group listmembers "Domain Users" | grep username
+
+Группы пользователя:
+
+	samba-tool user show username
